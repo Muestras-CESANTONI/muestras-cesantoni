@@ -12,7 +12,7 @@ const require = createRequire(import.meta.url);
 const pg = require('../tests/node_modules/pg');
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL || 'postgresql://postgres@localhost/samples?host=/tmp&port=55432' });
 const PORT = Number(process.env.PORT || 8787);
-const ROOT = path.resolve(import.meta.dirname, '../web');
+const ROOT = path.resolve(import.meta.dirname, '..');
 const SECRET = 'local-dev-tracking-secret';
 const TYPES: Record<string, string> = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png',
   '.otf': 'font/otf', '.ttf': 'font/ttf', '.json': 'application/json', '.svg': 'image/svg+xml', '.jpg': 'image/jpeg' };

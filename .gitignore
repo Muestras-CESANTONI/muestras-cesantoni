@@ -3,4 +3,4 @@ migration/out/
 node_modules/
 .env*
 entregables/
-web/config.js
+

@@ -8,7 +8,7 @@ Una sola plataforma con base central PostgreSQL (Supabase): catálogo público e
 | `supabase/functions/` | Edge Functions: `submit-request`, `notify-worker`, `email-webhook` (+ `_shared`) |
 | `supabase/deploy/cron.sql` | Programación del procesador de correos (cada minuto) |
 | `migration/` | Migración reproducible del Excel Houston → base, con reporte (`out/` no se versiona: contiene datos personales) |
-| `web/` | Área pública: `/` catálogo, `/request`, `/track` |
+| `index.html`, `request/`, `track/`, `assets/`, `config.js` | Área pública (GitHub Pages publica la raíz del repositorio): `/` catálogo, `/request`, `/track` |
 | `tests/` | Pruebas de base (`db.test.mjs`) y de navegador (`e2e.mjs`) |
 | `scripts/` | Base local de pruebas, servidor local, respaldo/restauración verificada, ejecución de todas las pruebas |
 | `docs/` | Diagnóstico, arquitectura, despliegue y procedimientos |
