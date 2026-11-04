@@ -11,11 +11,15 @@
   <script src="config.js"></script>
 </head>
 <body>
-<main class="wrap">
-  <section class="hero">
-    <h1>SAMPLES CATALOG</h1>
-    <p>Select the samples you would like to receive. Only samples currently available are shown.</p>
-  </section>
+<section class="hero-band"><div class="in">
+  <div class="eyebrow">Porcelanato Premium · Samples</div>
+  <h1>Request your<br>samples</h1>
+  <p>Choose the porcelain tiles you want to see and touch. Select the color, finish and sample size, and we will prepare them for you.</p>
+  <div class="hero-stats" id="stats" hidden><div><b id="statProducts">–</b><span>Products</span></div><div><b id="statOptions">–</b><span>Sample options</span></div></div>
+  <div class="cta"><a class="btn light" href="#catalog">Browse samples</a><a class="btn outline-light" href="track/">Track a request</a></div>
+</div></section>
+<main class="wrap" id="catalog">
+  <div class="toolbar">
   <div class="tabs" role="tablist" id="tabs" hidden></div>
   <form class="filters" id="filters" hidden>
     <label>Color <select name="color"><option value="">All colors</option></select></label>
@@ -23,6 +27,7 @@
     <label>Samples Size <select name="size"><option value="">All sizes</option></select></label>
     <div class="meta"><span id="resultCount"></span> · <button type="reset" class="link-btn">Clear filters</button></div>
   </form>
+  </div>
   <div id="grid" class="grid" aria-live="polite">
     <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
   </div>
@@ -64,7 +69,7 @@ function render() {
   if (!shown.length) { grid.innerHTML = `<div class="state" style="grid-column:1/-1">No samples match these filters.</div>`; return; }
   grid.innerHTML = shown.map((v) => `<article class="card">
     <div class="swatch">${v.image ? `<img loading="lazy" src="${esc(imageUrl(v.image))}" alt="${esc(titleCase(v.name))} ${esc(v.color || '')} ${esc(v.finish)} surface">`
-                                  : `<div class="pending">Photo coming soon</div>`}</div>
+                                  : `<div class="pending"><span class="mono">${esc(v.name)}</span><small>Photo coming soon</small></div>`}</div>
     <div class="body">
       <h3>${esc(v.name)}</h3>
       <div class="sub">${esc([v.color, v.finish].filter(Boolean).join(' · '))}</div>
@@ -101,6 +106,9 @@ try {
     tabsEl.hidden = false;
   }
   form.hidden = false;
+  document.getElementById('statProducts').textContent = variants(items).length;
+  document.getElementById('statOptions').textContent = items.length;
+  document.getElementById('stats').hidden = !items.length;
   if (!items.length) grid.innerHTML = `<div class="state" style="grid-column:1/-1">No samples are available right now. Please check back soon.</div>`;
   else render();
 } catch (e) {

@@ -10,8 +10,9 @@
   <script src="../config.js"></script>
 </head>
 <body>
+<section class="page-head"><div class="in"><div class="eyebrow">Porcelanato Premium · Samples</div><h1>Request samples</h1><p>Review your selection, tell us how you want to receive it and submit your request.</p></div></section>
 <main class="wrap" id="main">
-  <section class="hero"><h1>REQUEST SAMPLES</h1><p>Review your selection, tell us where to send it and submit your request.</p></section>
+  
   <div class="two">
     <form class="panel" id="form" novalidate>
       <h2>Your information</h2>
@@ -71,7 +72,7 @@ function renderSelection() {
   }
   document.getElementById('submit').disabled = false;
   sel.innerHTML = items.map((it, i) => { const p = problems[it.sku_code]; return `<div class="sel-line ${p ? 'problem' : ''}">
-    <div class="thumb">${it.image_path ? `<img src="${esc(imageUrl(it.image_path))}" alt="">` : ''}</div>
+    <div class="thumb">${it.image_path ? `<img src="${esc(imageUrl(it.image_path))}" alt="">` : esc(String(it.name || '').slice(0, 2))}</div>
     <div class="d"><b>${esc(it.name)}</b><small>${esc([it.color, it.finish].filter(Boolean).join(' · '))}</small>
       <small>${esc(it.sample_size)} · ${SAMPLE_TYPE[it.sample_type]}</small>${p ? `<small style="color:var(--err)">${esc(p)}</small>` : ''}</div>
     <input type="number" min="1" max="${it.max_selectable}" value="${it.quantity}" data-i="${i}" aria-label="Quantity">

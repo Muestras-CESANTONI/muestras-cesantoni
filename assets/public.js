@@ -25,7 +25,10 @@ export async function rpc(fn, args = {}) {
 
 export function imageUrl(path) {
   if (!path) return null;
-  return /^https?:\/\//.test(path) ? path : `${CFG.supabaseUrl}/storage/v1/object/public/catalog-images/${path.split('/').map(encodeURIComponent).join('/')}`;
+  if (/^https?:\/\//.test(path)) return path;
+  // photos stored in this repository (assets/products/…) or in the Supabase "catalog-images" bucket
+  if (path.startsWith('assets/')) return (CFG.basePath || '/') + path;
+  return `${CFG.supabaseUrl}/storage/v1/object/public/catalog-images/${path.split('/').map(encodeURIComponent).join('/')}`;
 }
 
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -53,10 +56,12 @@ export function header(active) {
   const base = CFG.basePath || '/';
   const a = (href, label, key, extra = '') => `<a href="${base}${href}" ${active === key ? 'aria-current="page"' : ''}>${label}${extra}</a>`;
   document.body.insertAdjacentHTML('afterbegin', `<header class="top"><div class="in">
-    <a class="logo" href="${base}" aria-label="CESANTONI samples catalog"><img src="${base}assets/img/logo-cesantoni-blanco.png" alt="CESANTONI"></a>
+    <a class="logo" href="${base}" aria-label="CESANTONI Porcelanato Premium — samples catalog"><img src="${base}assets/img/logo-porcelanato-blanco.png" alt="CESANTONI Porcelanato Premium"></a>
     <nav aria-label="Main">${a('', 'Catalog', 'catalog')}${a('request/', 'Request', 'request', ' <span class="count" data-cart-count hidden>0</span>')}${a('track/', 'Track', 'track')}</nav>
   </div></header>`);
-  document.body.insertAdjacentHTML('beforeend', `<footer class="site"><div class="in">© CESANTONI · Samples</div></footer>`);
+  document.body.insertAdjacentHTML('beforeend', `<footer class="site"><div class="in">
+    <span>© ${new Date().getFullYear()} CESANTONI · Porcelanato Premium · Samples</span>
+    <img src="${base}assets/img/logo-somos-logistica.png" alt="Somos Logística CESANTONI"></div></footer>`);
   updateCount();
 }
 
