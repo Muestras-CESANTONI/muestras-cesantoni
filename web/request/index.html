@@ -56,7 +56,7 @@
   </div>
 </main>
 <script type="module">
-import { cart, header, esc, titleCase, imageUrl, SAMPLE_TYPE } from '../assets/public.js';
+import { cart, header, esc, titleCase, imageUrl, SAMPLE_TYPE, apiHeaders } from '../assets/public.js';
 header('request');
 const CFG = window.SAMPLES_CONFIG;
 const form = document.getElementById('form'), sel = document.getElementById('selection'), msg = document.getElementById('formMsg');
@@ -126,7 +126,7 @@ form.addEventListener('submit', async (e) => {
   }
   busy = true; const btn = document.getElementById('submit'); btn.disabled = true; btn.textContent = 'Submitting…';
   try {
-    const r = await fetch(CFG.submitUrl, { method: 'POST', headers: { 'content-type': 'application/json', 'idempotency-key': attemptKey() }, body: JSON.stringify(body) });
+    const r = await fetch(CFG.submitUrl, { method: 'POST', headers: apiHeaders({ 'idempotency-key': attemptKey() }), body: JSON.stringify(body) });
     const out = await r.json().catch(() => ({}));
     if (r.ok && out.folio) {
       cart.clear(); newAttempt();

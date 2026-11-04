@@ -10,7 +10,7 @@ const allowed = env('ALLOWED_ORIGINS').split(',').map((s) => s.trim()).filter(Bo
 function cors(origin: string | null) {
   const ok = origin && allowed.includes(origin);
   return { 'Access-Control-Allow-Origin': ok ? origin! : allowed[0] || 'null', 'Access-Control-Allow-Methods': 'POST, OPTIONS',
-           'Access-Control-Allow-Headers': 'content-type, idempotency-key', 'Vary': 'Origin' };
+           'Access-Control-Allow-Headers': 'content-type, idempotency-key, apikey, authorization, x-client-info', 'Vary': 'Origin' };
 }
 const json = (status: number, body: unknown, h: Record<string, string>) =>
   new Response(JSON.stringify(body), { status, headers: { ...h, 'content-type': 'application/json' } });

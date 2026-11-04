@@ -32,7 +32,7 @@ returns jsonb language plpgsql stable security definer set search_path = public,
 declare r public.requests;
 begin
   select * into r from public.requests
-   where folio = upper(btrim(p_folio)) and tracking_token_hash = encode(digest(coalesce(p_token, ''), 'sha256'), 'hex');
+   where folio = upper(btrim(p_folio)) and tracking_token_hash = encode(extensions.digest(coalesce(p_token, ''), 'sha256'), 'hex');
   if not found then
     -- same answer for "wrong folio" and "wrong token": nothing can be learned by guessing folios
     raise exception 'NOT_FOUND' using errcode = 'P0002';

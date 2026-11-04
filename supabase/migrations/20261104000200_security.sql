@@ -189,8 +189,9 @@ do $$
 declare t text;
 begin
   for t in select tablename from pg_tables where schemaname = 'public' loop
+    -- RLS applies to anon/authenticated. Not FORCED: the SECURITY DEFINER functions (owned by the
+    -- migration role) must be able to write; they enforce permissions themselves (app.require_role).
     execute format('alter table public.%I enable row level security', t);
-    execute format('alter table public.%I force row level security', t);
   end loop;
 end $$;
 

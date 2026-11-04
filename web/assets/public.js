@@ -5,10 +5,17 @@
 // The browser only keeps the temporary selection (cart) — never inventory, requests or users.
 const CFG = window.SAMPLES_CONFIG;
 
+// Works with the legacy "anon" JWT key (eyJ…) and with the new publishable key (sb_publishable_…).
+export function apiHeaders(extra = {}) {
+  const h = { apikey: CFG.anonKey, 'content-type': 'application/json', ...extra };
+  if (/^eyJ/.test(CFG.anonKey)) h.Authorization = `Bearer ${CFG.anonKey}`;
+  return h;
+}
+
 export async function rpc(fn, args = {}) {
   const r = await fetch(`${CFG.supabaseUrl}/rest/v1/rpc/${fn}`, {
     method: 'POST',
-    headers: { apikey: CFG.anonKey, Authorization: `Bearer ${CFG.anonKey}`, 'content-type': 'application/json' },
+    headers: apiHeaders(),
     body: JSON.stringify(args),
   });
   const body = await r.json().catch(() => null);

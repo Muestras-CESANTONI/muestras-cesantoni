@@ -7,7 +7,8 @@
 --   * request lines keep a historical snapshot (renaming a product never rewrites old requests)
 --   * every mutating operation carries an operation id (idempotency against double click / retries)
 -- =====================================================================================
-create extension if not exists pgcrypto;
+create schema if not exists extensions;          -- Supabase keeps extensions here
+create extension if not exists pgcrypto with schema extensions;
 
 create schema if not exists app;      -- internal helpers, never exposed through the API
 comment on schema app is 'Internal helpers (not exposed by PostgREST).';
@@ -358,7 +359,7 @@ create table public.packages (
   parent_id   bigint references public.packages(id),    -- JR card inside a Master box
   code        text not null unique,                     -- human readable: SMCES-0013-M01 / SMCES-0013-M01-J02
   seq         smallint not null check (seq > 0),
-  qr_token    text not null unique default encode(gen_random_bytes(16), 'hex'),
+  qr_token    text not null unique default encode(extensions.gen_random_bytes(16), 'hex'),
   prep_location text,
   verified_at timestamptz,
   verified_by uuid,
