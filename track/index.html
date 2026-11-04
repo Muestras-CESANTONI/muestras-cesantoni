@@ -7,8 +7,8 @@
   <meta name="theme-color" content="#191D20">
   <meta name="referrer" content="no-referrer">
   <link rel="icon" href="../assets/img/icono-32.png">
-  <link rel="stylesheet" href="../assets/public.css">
-  <script src="../config.js"></script>
+  <link rel="stylesheet" href="../assets/public.css?v=20261104c">
+  <script src="../config.js?v=20261104c"></script>
 </head>
 <body>
 <section class="page-head"><div class="in"><div class="eyebrow">Porcelanato Premium · Samples</div><h1>Track your request</h1><p>Follow the status of your samples with the private link from your request.</p></div></section>
@@ -17,7 +17,7 @@
   <div id="out" class="panel" aria-live="polite">Loading…</div>
 </main>
 <script type="module">
-import { rpc, header, esc } from '../assets/public.js';
+import { rpc, header, esc } from '../assets/public.js?v=20261104c';
 header('track');
 const LABEL = { submitted: 'Submitted', reserved: 'Confirmed', in_preparation: 'In preparation', ready: 'Ready', shipped: 'Shipped',
   ready_for_pickup: 'Ready for pickup', collected: 'Collected', delivered: 'Delivered', on_hold: 'On hold', cancelled: 'Cancelled' };

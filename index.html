@@ -7,8 +7,8 @@
   <meta name="description" content="Browse CESANTONI samples available and request them online.">
   <meta name="theme-color" content="#191D20">
   <link rel="icon" href="assets/img/icono-32.png">
-  <link rel="stylesheet" href="assets/public.css">
-  <script src="config.js"></script>
+  <link rel="stylesheet" href="assets/public.css?v=20261104c">
+  <script src="config.js?v=20261104c"></script>
 </head>
 <body>
 <section class="hero-band"><div class="in">
@@ -33,7 +33,7 @@
   </div>
 </main>
 <script type="module">
-import { rpc, header, cart, esc, titleCase, imageUrl, toast, SAMPLE_TYPE, SAMPLE_HELP } from './assets/public.js';
+import { rpc, header, cart, esc, titleCase, imageUrl, toast, SAMPLE_TYPE, SAMPLE_HELP } from './assets/public.js?v=20261104c';
 header('catalog');
 const grid = document.getElementById('grid'), form = document.getElementById('filters'), tabsEl = document.getElementById('tabs');
 const SECTIONS = { all: 'All', tile: 'Tiles', paver: 'Pavers', other: 'Other' };
