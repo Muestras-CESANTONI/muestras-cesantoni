@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Track Request | CESANTONI</title>
+  <meta name="theme-color" content="#191D20">
+  <meta name="referrer" content="no-referrer">
+  <link rel="icon" href="../assets/img/icono-32.png">
+  <link rel="stylesheet" href="../assets/public.css">
+  <script src="../config.js"></script>
+</head>
+<body>
+<main class="wrap">
+  <section class="hero"><h1>TRACK YOUR REQUEST</h1></section>
+  <div id="out" class="panel" aria-live="polite">Loading…</div>
+</main>
+<script type="module">
+import { rpc, header, esc } from '../assets/public.js';
+header('track');
+const LABEL = { submitted: 'Submitted', reserved: 'Confirmed', in_preparation: 'In preparation', ready: 'Ready', shipped: 'Shipped',
+  ready_for_pickup: 'Ready for pickup', collected: 'Collected', delivered: 'Delivered', on_hold: 'On hold', cancelled: 'Cancelled' };
+const out = document.getElementById('out');
+const p = new URLSearchParams(location.search);
+const f = p.get('f'), t = p.get('t');
+const fmt = (d) => d ? new Date(d).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : '';
+if (!f || !t) {
+  out.innerHTML = `<p>Please open the private tracking link included in your confirmation email.</p>
+    <p style="color:var(--muted)">For your privacy, a request cannot be looked up with its number alone.</p>`;
+} else {
+  try {
+    const r = await rpc('track_request', { p_folio: f, p_token: t });
+    out.innerHTML = `<p>Request <b>${esc(r.folio)}</b> · <span class="badge">${esc(LABEL[r.status] || r.status)}</span></p>
+      <p style="color:var(--muted)">Submitted ${esc(fmt(r.submitted_at))} · ${r.delivery_method === 'pickup' ? 'Customer pickup' : 'Shipping to ' + esc(r.destination || '')}</p>
+      ${(r.shipments || []).map((s) => `<p>Carrier: <b>${esc(s.carrier)}</b> · Tracking number: <b>${esc(s.tracking_no)}</b></p>`).join('')}
+      <h2 style="margin:20px 0 12px">History</h2>
+      <ul class="timeline">${(r.history || []).map((h) => `<li><b>${esc(LABEL[h.status] || h.status)}</b><br><small style="color:var(--muted)">${esc(fmt(h.at))}</small></li>`).join('')}</ul>
+      <h2 style="margin:20px 0 12px">Samples</h2>
+      ${(r.lines || []).map((l) => `<div class="sel-line" style="grid-template-columns:1fr auto"><div class="d">${esc(l.description)}</div><div>× ${esc(l.quantity)}</div></div>`).join('')}`;
+  } catch (e) {
+    out.innerHTML = e.status === 404 || /NOT_FOUND/.test(e.message)
+      ? `<p>We could not find a request for this link. Please check that you opened the complete link from your email.</p>`
+      : `<p>We could not load your request right now. Please try again in a few minutes.</p><button class="btn ghost" onclick="location.reload()">Try again</button>`;
+  }
+}
+</script>
+</body>
+</html>

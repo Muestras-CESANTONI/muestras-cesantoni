@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Request Samples | CESANTONI</title>
+  <meta name="theme-color" content="#191D20">
+  <link rel="icon" href="../assets/img/icono-32.png">
+  <link rel="stylesheet" href="../assets/public.css">
+  <script src="../config.js"></script>
+</head>
+<body>
+<main class="wrap" id="main">
+  <section class="hero"><h1>REQUEST SAMPLES</h1><p>Review your selection, tell us where to send it and submit your request.</p></section>
+  <div class="two">
+    <form class="panel" id="form" novalidate>
+      <h2>Your information</h2>
+      <div class="fields">
+        <div class="field"><label for="full_name">Full name *</label><input id="full_name" name="full_name" type="text" autocomplete="name" required maxlength="120"></div>
+        <div class="field"><label for="company">Company</label><input id="company" name="company" type="text" autocomplete="organization" maxlength="120"></div>
+        <div class="field"><label for="email">Email *</label><input id="email" name="email" type="email" autocomplete="email" required maxlength="160"></div>
+        <div class="field"><label for="phone">Phone *</label><input id="phone" name="phone" type="tel" autocomplete="tel" required maxlength="40"></div>
+        <div class="field full"><label for="project_name">Project name (optional)</label><input id="project_name" name="project_name" type="text" maxlength="120"></div>
+      </div>
+      <h2 style="margin-top:24px">Delivery method</h2>
+      <div class="seg field" id="method">
+        <label><input type="radio" name="delivery_method" value="shipping" checked> <span><b>Shipping</b><small>We ship the samples to your address.</small></span></label>
+        <label><input type="radio" name="delivery_method" value="pickup"> <span><b>Customer pickup</b><small>You collect the samples at our warehouse.</small></span></label>
+      </div>
+      <div id="shipping" class="fields" style="margin-top:14px">
+        <div class="field full"><label for="address_line">Shipping address *</label><input id="address_line" name="address_line" type="text" autocomplete="street-address" maxlength="200"></div>
+        <div class="field"><label for="city">City *</label><input id="city" name="city" type="text" autocomplete="address-level2" maxlength="80"></div>
+        <div class="field"><label for="state">State *</label><input id="state" name="state" type="text" autocomplete="address-level1" maxlength="80"></div>
+        <div class="field"><label for="zip_code">ZIP code *</label><input id="zip_code" name="zip_code" type="text" autocomplete="postal-code" maxlength="20"></div>
+        <div class="field"><label for="country">Country *</label><input id="country" name="country" type="text" autocomplete="country-name" value="United States" maxlength="80"></div>
+        <div class="field full"><label for="delivery_notes">Delivery instructions (optional)</label><input id="delivery_notes" name="delivery_notes" type="text" maxlength="300"></div>
+      </div>
+      <p id="pickupNote" class="note warn" hidden>We will email you when your samples are ready for pickup, with the warehouse address and hours.</p>
+      <div class="field full" style="margin-top:14px"><label for="notes">Notes (optional)</label><textarea id="notes" name="notes" maxlength="1000"></textarea></div>
+      <div style="margin-top:14px"><label><input type="checkbox" id="needBilling"> I need to provide billing information</label></div>
+      <div id="billing" class="fields" style="margin-top:12px" hidden>
+        <div class="field"><label for="b_company">Billing company *</label><input id="b_company" type="text" maxlength="160"></div>
+        <div class="field"><label for="b_tax">Tax ID</label><input id="b_tax" type="text" maxlength="40"></div>
+        <div class="field full"><label for="b_address">Billing address</label><input id="b_address" type="text" maxlength="300"></div>
+        <div class="field full"><label for="b_email">Billing email</label><input id="b_email" type="email" maxlength="160"></div>
+      </div>
+      <label class="hp" aria-hidden="true">Website <input name="website" tabindex="-1" autocomplete="off"></label>
+      <div id="formMsg" role="alert"></div>
+      <button class="btn accent" type="submit" id="submit" style="margin-top:12px;width:100%">Submit request</button>
+    </form>
+    <aside class="panel" aria-labelledby="selTitle">
+      <h2 id="selTitle">Your selection</h2>
+      <div id="selection"></div>
+      <p style="margin:14px 0 0"><a href="../">Add more samples</a></p>
+    </aside>
+  </div>
+</main>
+<script type="module">
+import { cart, header, esc, titleCase, imageUrl, SAMPLE_TYPE } from '../assets/public.js';
+header('request');
+const CFG = window.SAMPLES_CONFIG;
+const form = document.getElementById('form'), sel = document.getElementById('selection'), msg = document.getElementById('formMsg');
+const startedAt = Date.now();
+let problems = {};
+
+function renderSelection() {
+  const items = cart.read();
+  if (!items.length) {
+    sel.innerHTML = `<div class="state">Your selection is empty.<br><a href="../">Browse the catalog</a></div>`;
+    document.getElementById('submit').disabled = true; return;
+  }
+  document.getElementById('submit').disabled = false;
+  sel.innerHTML = items.map((it, i) => { const p = problems[it.sku_code]; return `<div class="sel-line ${p ? 'problem' : ''}">
+    <div class="thumb">${it.image_path ? `<img src="${esc(imageUrl(it.image_path))}" alt="">` : ''}</div>
+    <div class="d"><b>${esc(it.name)}</b><small>${esc([it.color, it.finish].filter(Boolean).join(' · '))}</small>
+      <small>${esc(it.sample_size)} · ${SAMPLE_TYPE[it.sample_type]}</small>${p ? `<small style="color:var(--err)">${esc(p)}</small>` : ''}</div>
+    <input type="number" min="1" max="${it.max_selectable}" value="${it.quantity}" data-i="${i}" aria-label="Quantity">
+    <button class="link-btn rm" type="button" data-rm="${i}">Remove</button></div>`; }).join('');
+}
+sel.addEventListener('change', (e) => {
+  const i = e.target.dataset.i; if (i === undefined) return;
+  const items = cart.read(); const it = items[i];
+  it.quantity = Math.max(1, Math.min(Number(e.target.value) || 1, it.max_selectable));
+  delete problems[it.sku_code]; cart.write(items); newAttempt();
+  setTimeout(renderSelection);   // after the blur/click that triggered "change" has finished
+});
+sel.addEventListener('click', (e) => {
+  const i = e.target.dataset.rm; if (i === undefined) return;
+  const items = cart.read(); delete problems[items[i].sku_code]; items.splice(i, 1); cart.write(items); newAttempt(); renderSelection();
+});
+function syncMethod() {
+  const pickup = form.delivery_method.value === 'pickup';
+  document.getElementById('shipping').hidden = pickup;
+  document.getElementById('pickupNote').hidden = !pickup;
+}
+form.addEventListener('change', (e) => { if (e.target.name === 'delivery_method') syncMethod(); });
+document.getElementById('needBilling').addEventListener('change', (e) => { document.getElementById('billing').hidden = !e.target.checked; });
+
+// One idempotency key per submission attempt: a double click or a network retry reuses it (same folio, no duplicate).
+function attemptKey() {
+  let k = sessionStorage.getItem('samples-attempt');
+  if (!k) { k = crypto.randomUUID(); sessionStorage.setItem('samples-attempt', k); }
+  return k;
+}
+function newAttempt() { sessionStorage.removeItem('samples-attempt'); }
+
+function showFieldErrors(fields = {}) {
+  form.querySelectorAll('.field').forEach((f) => { f.classList.remove('invalid'); f.querySelector('.err')?.remove(); });
+  for (const [k, m] of Object.entries(fields)) {
+    const id = { 'billing.company': 'b_company', 'billing.email': 'b_email', delivery_method: 'method' }[k] || k;
+    const el = document.getElementById(id); const f = el?.closest('.field');
+    if (f) { f.classList.add('invalid'); f.insertAdjacentHTML('beforeend', `<div class="err">${esc(m)}</div>`); }
+  }
+  const first = form.querySelector('.invalid input, .invalid select'); first?.focus();
+}
+
+let busy = false;
+form.addEventListener('submit', async (e) => {
+  e.preventDefault(); if (busy) return;
+  msg.innerHTML = ''; showFieldErrors();
+  const items = cart.read(); if (!items.length) return;
+  const data = Object.fromEntries(new FormData(form));
+  const body = { ...data, form_started_at: startedAt, lines: items.map((i) => ({ sku_code: i.sku_code, quantity: i.quantity })) };
+  if (document.getElementById('needBilling').checked) {
+    body.billing = { required: true, company: b_company.value, tax_id: b_tax.value, address: b_address.value, email: b_email.value };
+  }
+  busy = true; const btn = document.getElementById('submit'); btn.disabled = true; btn.textContent = 'Submitting…';
+  try {
+    const r = await fetch(CFG.submitUrl, { method: 'POST', headers: { 'content-type': 'application/json', 'idempotency-key': attemptKey() }, body: JSON.stringify(body) });
+    const out = await r.json().catch(() => ({}));
+    if (r.ok && out.folio) {
+      cart.clear(); newAttempt();
+      document.getElementById('main').innerHTML = `<div class="panel done">
+        <h1>Request received</h1><p>Your request number is</p><div class="folio">${esc(out.folio)}</div>
+        <p>We sent a confirmation to <b>${esc(data.email)}</b>. You can follow your request at any time with this private link:</p>
+        <p><a class="btn" href="${esc(out.track_url)}">Track your request</a></p>
+        <p style="color:var(--muted);font-size:13px">Keep this link private: it shows the status of your request.</p></div>`;
+      return;
+    }
+    if (r.status === 409 && out.problems) {
+      problems = {};
+      for (const p of out.problems) {
+        problems[p.sku_code] = p.problem === 'insufficient' ? (p.available > 0 ? `Only ${p.available} available now. Please lower the quantity.` : 'No longer available. Please remove it.')
+          : p.problem === 'quantity_limit' ? `Maximum ${p.max} per request.` : 'No longer available. Please remove it.';
+        const it = items.find((x) => x.sku_code === p.sku_code); if (it && p.available > 0) it.max_selectable = Math.min(it.max_selectable, p.available);
+      }
+      cart.write(items); newAttempt(); renderSelection();
+      msg.innerHTML = `<div class="note err">${esc(out.message)}</div>`;
+    } else if (out.fields) {
+      showFieldErrors(out.fields); msg.innerHTML = `<div class="note err">${esc(out.message)}</div>`;
+    } else {
+      msg.innerHTML = `<div class="note err">${esc(out.message || 'We could not submit your request. Please try again.')}</div>`;
+    }
+  } catch {
+    // network problem: the same key is kept, so trying again cannot create a second request
+    msg.innerHTML = `<div class="note err">Connection problem. Your request may not have been sent. Please try again — you will not get a duplicate.</div>`;
+  } finally { busy = false; btn.disabled = false; btn.textContent = 'Submit request'; }
+});
+syncMethod(); renderSelection();
+</script>
+</body>
+</html>

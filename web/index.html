@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Samples Catalog | CESANTONI</title>
+  <meta name="description" content="Browse CESANTONI samples available and request them online.">
+  <meta name="theme-color" content="#191D20">
+  <link rel="icon" href="assets/img/icono-32.png">
+  <link rel="stylesheet" href="assets/public.css">
+  <script src="config.js"></script>
+</head>
+<body>
+<main class="wrap">
+  <section class="hero">
+    <h1>SAMPLES CATALOG</h1>
+    <p>Select the samples you would like to receive. Only samples currently available are shown.</p>
+  </section>
+  <div class="tabs" role="tablist" id="tabs" hidden></div>
+  <form class="filters" id="filters" hidden>
+    <label>Color <select name="color"><option value="">All colors</option></select></label>
+    <label>Finish <select name="finish"><option value="">All finishes</option></select></label>
+    <label>Samples Size <select name="size"><option value="">All sizes</option></select></label>
+    <div class="meta"><span id="resultCount"></span> · <button type="reset" class="link-btn">Clear filters</button></div>
+  </form>
+  <div id="grid" class="grid" aria-live="polite">
+    <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+  </div>
+</main>
+<script type="module">
+import { rpc, header, cart, esc, titleCase, imageUrl, toast, SAMPLE_TYPE, SAMPLE_HELP } from './assets/public.js';
+header('catalog');
+const grid = document.getElementById('grid'), form = document.getElementById('filters'), tabsEl = document.getElementById('tabs');
+const SECTIONS = { all: 'All', tile: 'Tiles', paver: 'Pavers', other: 'Other' };
+let items = [], section = 'all';
+
+// one card per variant (model + color + finish); its sample options are the SKUs
+function variants(list) {
+  const map = new Map();
+  for (const it of list) {
+    const k = `${it.model}|${it.color || ''}|${it.finish}`;
+    if (!map.has(k)) map.set(k, { key: k, name: it.product_name, color: it.color, finish: it.finish, category: it.category, image: it.image_path, options: [] });
+    const v = map.get(k); v.image = v.image || it.image_path; v.options.push(it);
+  }
+  return [...map.values()];
+}
+function inSection(it) { return section === 'all' || it.category === section; }
+function fillSelect(sel, values, current) {
+  const first = sel.options[0].outerHTML;
+  // the value is set as a property (not the "selected" attribute) so "Clear filters" always returns to "All"
+  sel.innerHTML = first + values.map((v) => `<option>${esc(v)}</option>`).join('');
+  sel.value = current && values.includes(current) ? current : '';
+}
+function render() {
+  const f = Object.fromEntries(new FormData(form));
+  const pool = items.filter(inSection);
+  // filter options only from the materials of the current section (no irrelevant options for Pavers)
+  fillSelect(form.color, [...new Set(pool.map((i) => i.color).filter(Boolean))].sort(), f.color);
+  fillSelect(form.finish, [...new Set(pool.map((i) => i.finish))].sort(), f.finish);
+  fillSelect(form.size, [...new Set(pool.map((i) => i.sample_size))].sort(), f.size);
+  const g = Object.fromEntries(new FormData(form));
+  const shown = variants(pool.filter((i) => (!g.color || i.color === g.color) && (!g.finish || i.finish === g.finish) && (!g.size || i.sample_size === g.size)));
+  document.getElementById('resultCount').textContent = `${shown.length} ${shown.length === 1 ? 'product' : 'products'}`;
+  if (!shown.length) { grid.innerHTML = `<div class="state" style="grid-column:1/-1">No samples match these filters.</div>`; return; }
+  grid.innerHTML = shown.map((v) => `<article class="card">
+    <div class="swatch">${v.image ? `<img loading="lazy" src="${esc(imageUrl(v.image))}" alt="${esc(titleCase(v.name))} ${esc(v.color || '')} ${esc(v.finish)} surface">`
+                                  : `<div class="pending">Photo coming soon</div>`}</div>
+    <div class="body">
+      <h3>${esc(v.name)}</h3>
+      <div class="sub">${esc([v.color, v.finish].filter(Boolean).join(' · '))}</div>
+      <div class="opts">${v.options.filter((o) => !g.size || o.sample_size === g.size).map((o) => `
+        <div class="opt">
+          <div class="size">${esc(o.sample_size)}<small title="${esc(SAMPLE_HELP[o.sample_type])}">${SAMPLE_TYPE[o.sample_type]} · up to ${o.max_selectable}</small></div>
+          <input type="number" min="1" max="${o.max_selectable}" value="1" aria-label="Quantity of ${esc(o.sample_size)}" data-qty="${esc(o.sku_code)}">
+          <button class="btn small" type="button" data-add="${esc(o.sku_code)}">Add</button>
+        </div>`).join('')}</div>
+    </div></article>`).join('');
+}
+grid.addEventListener('click', (e) => {
+  const code = e.target.closest('[data-add]')?.dataset.add; if (!code) return;
+  const it = items.find((i) => i.sku_code === code);
+  const q = Math.max(1, Math.min(Number(grid.querySelector(`[data-qty="${CSS.escape(code)}"]`).value) || 1, it.max_selectable));
+  cart.add({ sku_code: it.sku_code, name: it.product_name, color: it.color, finish: it.finish, sample_type: it.sample_type,
+             sample_size: it.sample_size, max_selectable: it.max_selectable, image_path: it.image_path }, q);
+  toast(`${titleCase(it.product_name)} added to your request`);
+});
+form.addEventListener('change', render);
+form.addEventListener('reset', () => setTimeout(render));
+tabsEl.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-section]'); if (!b) return;
+  section = b.dataset.section; form.reset();
+  tabsEl.querySelectorAll('button').forEach((x) => x.setAttribute('aria-selected', String(x === b)));
+  render();
+});
+
+try {
+  items = await rpc('catalog_items');
+  const cats = [...new Set(items.map((i) => i.category))];
+  if (cats.length > 1) {
+    tabsEl.innerHTML = ['all', ...cats].map((c) => `<button type="button" role="tab" data-section="${c}" aria-selected="${c === 'all'}">${SECTIONS[c] || c}</button>`).join('');
+    tabsEl.hidden = false;
+  }
+  form.hidden = false;
+  if (!items.length) grid.innerHTML = `<div class="state" style="grid-column:1/-1">No samples are available right now. Please check back soon.</div>`;
+  else render();
+} catch (e) {
+  grid.innerHTML = `<div class="state" style="grid-column:1/-1">We could not load the catalog. Please refresh the page.<br><button class="btn ghost" style="margin-top:12px" onclick="location.reload()">Refresh</button></div>`;
+}
+</script>
+</body>
+</html>

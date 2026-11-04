@@ -1,0 +1,4 @@
+migration/out/
+*.xlsx
+node_modules/
+.env*
