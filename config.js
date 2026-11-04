@@ -2,7 +2,7 @@
 // NEVER put the service_role / secret key here.
 window.SAMPLES_CONFIG = {
   supabaseUrl: 'https://wetjwphgdcjcukuwlfwl.supabase.co',
-  anonKey: '',   // ← Supabase › Project Settings › API Keys › publishable (sb_publishable_…) or anon public (eyJ…)
+  anonKey: 'sb_publishable_Llv9zSkHOkxOrlkNbWeaHw_sAuivVLj',   // publishable key (public by design)
   submitUrl: 'https://wetjwphgdcjcukuwlfwl.supabase.co/functions/v1/submit-request',
   basePath: '/'
 };
