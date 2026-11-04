@@ -11,6 +11,7 @@ import { validateRequest, looksAutomated, sha256Hex, trackingToken, mapDbError }
 const require = createRequire(import.meta.url);
 const pg = require('../tests/node_modules/pg');
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL || 'postgresql://postgres@localhost/samples?host=/tmp&port=55432' });
+pool.on('error', (e: any) => console.error('pool error (database restarted?):', e.message));
 const PORT = Number(process.env.PORT || 8787);
 const ROOT = path.resolve(import.meta.dirname, '..');
 const SECRET = 'local-dev-tracking-secret';

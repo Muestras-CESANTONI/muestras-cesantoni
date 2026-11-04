@@ -52,17 +52,34 @@ export function updateCount() {
   document.querySelectorAll('[data-cart-count]').forEach((el) => { el.textContent = n; el.hidden = n === 0; });
 }
 
+const PIN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>';
 export function header(active) {
   const base = CFG.basePath || '/';
   const a = (href, label, key, extra = '') => `<a href="${base}${href}" ${active === key ? 'aria-current="page"' : ''}>${label}${extra}</a>`;
   document.body.insertAdjacentHTML('afterbegin', `<header class="top"><div class="in">
-    <a class="logo" href="${base}" aria-label="CESANTONI Porcelanato Premium — samples catalog"><img src="${base}assets/img/logo-porcelanato-blanco.png" alt="CESANTONI Porcelanato Premium"></a>
-    <nav aria-label="Main">${a('', 'Catalog', 'catalog')}${a('request/', 'Request', 'request', ' <span class="count" data-cart-count hidden>0</span>')}${a('track/', 'Track', 'track')}</nav>
+    <a class="logo" href="${base}" aria-label="CESANTONI Porcelanato Premium — Sample Studio"><img src="${base}assets/img/logo-porcelanato.png" alt="CESANTONI Porcelanato Premium"></a>
+    <nav aria-label="Main">${a('', 'Sample Studio', 'catalog')}${a('request/', 'Your selection', 'request', ' <span class="count" data-cart-count hidden>0</span>')}${a('track/', 'Track your request', 'track')}</nav>
+    <div class="actions"><a class="btn" href="${base}track/">${PIN} Track request</a></div>
   </div></header>`);
   document.body.insertAdjacentHTML('beforeend', `<footer class="site"><div class="in">
-    <span>© ${new Date().getFullYear()} CESANTONI · Porcelanato Premium · Samples</span>
+    <span>© ${new Date().getFullYear()} CESANTONI · Porcelanato Premium · Sample Studio</span>
     <img src="${base}assets/img/logo-somos-logistica.png" alt="Somos Logística CESANTONI"></div></footer>`);
   updateCount();
+}
+
+// Stepper shared by the studio (step 1) and the request page (steps 2–4).
+export function steps(activeIndex) {
+  const base = CFG.basePath || '/';
+  const S = [['Samples', 'Find your finish', ''], ['Contact', 'Tell us about you', 'request/#contact'], ['Delivery', 'Choose your destination', 'request/#delivery'], ['Review', 'Check every detail', 'request/#review']];
+  return `<nav class="steps" aria-label="Request steps">${S.map(([t, s, href], i) => `
+    <a class="step ${i === activeIndex ? 'active' : i < activeIndex ? 'done' : ''}" href="${base}${href || '#studio'}" ${i === activeIndex ? 'aria-current="step"' : ''}>
+      <span class="n">${i < activeIndex ? '✓' : String(i + 1).padStart(2, '0')}</span><span><b>${t}</b><small>${s}</small></span><span class="chev">${i === 3 ? '✓' : '›'}</span></a>`).join('')}</nav>`;
+}
+
+// "Cut sample 8x8 in" → { kind: 'Cut', size: '8×8 in' }
+export function sizeLabel(o) {
+  const size = String(o.sample_size || '').replace(/\s*(cut sample|full piece)\s*$/i, '').replace(/(\d)x(\d)/g, '$1 × $2');
+  return { kind: o.sample_type === 'full_piece' ? 'Full piece' : 'Cut', size };
 }
 
 let toastTimer;
@@ -74,4 +91,5 @@ export function toast(msg) {
 }
 
 export const SAMPLE_TYPE = { cut_sample: 'Cut sample', full_piece: 'Full piece' };
+export const pcs = (n) => `${n} ${Number(n) === 1 ? 'pc' : 'pcs'}`;
 export const SAMPLE_HELP = { cut_sample: 'A piece cut from the tile to show color and texture.', full_piece: 'One complete tile in its production format.' };

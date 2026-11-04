@@ -4,20 +4,22 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Track Request | CESANTONI</title>
-  <meta name="theme-color" content="#191D20">
+  <meta name="theme-color" content="#FFFFFF">
   <meta name="referrer" content="no-referrer">
   <link rel="icon" href="../assets/img/icono-32.png">
-  <link rel="stylesheet" href="../assets/public.css?v=20261104c">
-  <script src="../config.js?v=20261104c"></script>
+  <link rel="stylesheet" href="../assets/public.css?v=20261104d">
+  <script src="../config.js?v=20261104d"></script>
 </head>
 <body>
-<section class="page-head"><div class="in"><div class="eyebrow">Porcelanato Premium · Samples</div><h1>Track your request</h1><p>Follow the status of your samples with the private link from your request.</p></div></section>
-<main class="wrap">
+
+<main><div class="container" style="padding-bottom:80px">
+  <div class="page-intro"><span class="eyebrow accent">Sample Studio</span><h1>Track your request</h1>
+  <p>Follow the status of your samples with the private link from your request.</p></div>
   
-  <div id="out" class="panel" aria-live="polite">Loading…</div>
-</main>
+  <div id="out" class="panel" aria-live="polite" style="max-width:860px">Loading…</div>
+</div></main>
 <script type="module">
-import { rpc, header, esc } from '../assets/public.js?v=20261104c';
+import { rpc, header, esc } from '../assets/public.js?v=20261104d';
 header('track');
 const LABEL = { submitted: 'Submitted', reserved: 'Confirmed', in_preparation: 'In preparation', ready: 'Ready', shipped: 'Shipped',
   ready_for_pickup: 'Ready for pickup', collected: 'Collected', delivered: 'Delivered', on_hold: 'On hold', cancelled: 'Cancelled' };
@@ -34,9 +36,9 @@ if (!f || !t) {
     out.innerHTML = `<p>Request <b>${esc(r.folio)}</b> · <span class="badge">${esc(LABEL[r.status] || r.status)}</span></p>
       <p style="color:var(--muted)">Submitted ${esc(fmt(r.submitted_at))} · ${r.delivery_method === 'pickup' ? 'Customer pickup' : 'Shipping to ' + esc(r.destination || '')}</p>
       ${(r.shipments || []).map((s) => `<p>Carrier: <b>${esc(s.carrier)}</b> · Tracking number: <b>${esc(s.tracking_no)}</b></p>`).join('')}
-      <h2 style="margin:20px 0 12px">History</h2>
+      <h2 style="margin:26px 0 14px;font-size:22px">History</h2>
       <ul class="timeline">${(r.history || []).map((h) => `<li><b>${esc(LABEL[h.status] || h.status)}</b><br><small style="color:var(--muted)">${esc(fmt(h.at))}</small></li>`).join('')}</ul>
-      <h2 style="margin:20px 0 12px">Samples</h2>
+      <h2 style="margin:26px 0 14px;font-size:22px">Samples</h2>
       ${(r.lines || []).map((l) => `<div class="sel-line" style="grid-template-columns:1fr auto"><div class="d">${esc(l.description)}</div><div>× ${esc(l.quantity)}</div></div>`).join('')}`;
   } catch (e) {
     out.innerHTML = e.status === 404 || /NOT_FOUND/.test(e.message)

@@ -3,94 +3,182 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Samples Catalog | CESANTONI</title>
-  <meta name="description" content="Browse CESANTONI samples available and request them online.">
-  <meta name="theme-color" content="#191D20">
+  <title>Sample Studio | CESANTONI Porcelanato Premium</title>
+  <meta name="description" content="Discover the texture, explore the finish and request CESANTONI porcelain tile samples online.">
+  <meta name="theme-color" content="#FFFFFF">
   <link rel="icon" href="assets/img/icono-32.png">
-  <link rel="stylesheet" href="assets/public.css?v=20261104c">
-  <script src="config.js?v=20261104c"></script>
+  <link rel="stylesheet" href="assets/public.css?v=20261104d">
+  <script src="config.js?v=20261104d"></script>
 </head>
-<body>
-<section class="hero-band"><div class="in">
-  <div class="eyebrow">Porcelanato Premium · Samples</div>
-  <h1>Request your<br>samples</h1>
-  <p>Choose the porcelain tiles you want to see and touch. Select the color, finish and sample size, and we will prepare them for you.</p>
-  <div class="hero-stats" id="stats" hidden><div><b id="statProducts">–</b><span>Products</span></div><div><b id="statOptions">–</b><span>Sample options</span></div></div>
-  <div class="cta"><a class="btn light" href="#catalog">Browse samples</a><a class="btn outline-light" href="track/">Track a request</a></div>
+<body class="has-bar">
+<section class="hero"><div class="in">
+  <div>
+    <span class="eyebrow accent">A closer look at possibility</span>
+    <h1>Great spaces start<br>with <em>a sample.</em></h1>
+    <p>Discover the texture. Explore the finish.<br>Find the perfect starting point for your next project.</p>
+    <a class="text-link" href="#studio">Build your sample selection <span aria-hidden="true">→</span></a>
+    <div class="quiet">Thoughtfully selected. Beautifully experienced.</div>
+  </div>
+  <figure>
+    <span class="chip">CESANTONI · Porcelanato Premium</span>
+    <div class="mark"><img src="assets/img/icono-c-blanco.png" alt=""></div>
+    <figcaption>Samples available in Houston <span>01 / Studio</span></figcaption>
+  </figure>
 </div></section>
-<main class="wrap" id="catalog">
-  <div class="toolbar">
-  <div class="tabs" role="tablist" id="tabs" hidden></div>
-  <form class="filters" id="filters" hidden>
-    <label>Color <select name="color"><option value="">All colors</option></select></label>
-    <label>Finish <select name="finish"><option value="">All finishes</option></select></label>
-    <label>Samples Size <select name="size"><option value="">All sizes</option></select></label>
-    <div class="meta"><span id="resultCount"></span> · <button type="reset" class="link-btn">Clear filters</button></div>
-  </form>
-  </div>
-  <div id="grid" class="grid" aria-live="polite">
-    <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
-  </div>
-</main>
-<script type="module">
-import { rpc, header, cart, esc, titleCase, imageUrl, toast, SAMPLE_TYPE, SAMPLE_HELP } from './assets/public.js?v=20261104c';
-header('catalog');
-const grid = document.getElementById('grid'), form = document.getElementById('filters'), tabsEl = document.getElementById('tabs');
-const SECTIONS = { all: 'All', tile: 'Tiles', paver: 'Pavers', other: 'Other' };
-let items = [], section = 'all';
 
-// one card per variant (model + color + finish); its sample options are the SKUs
-function variants(list) {
+<main class="studio" id="studio"><div class="container">
+  <div class="studio-head">
+    <h2>Your vision. Your selection.</h2>
+    <p>Four simple steps from inspiration to your next project.</p>
+  </div>
+  <div id="steps"></div>
+
+  <div class="layout">
+    <section aria-labelledby="matTitle">
+      <div class="section-title">
+        <span class="eyebrow">01 / The materials</span>
+        <h2 id="matTitle">Select your samples</h2>
+        <p>Choose your material, color and sample size.</p>
+      </div>
+      <div class="tabsrow"><div class="tabs" role="tablist" id="tabs"></div><span class="meta" id="resultCount"></span></div>
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input type="text" id="q" placeholder="Search material, color or finish…" aria-label="Search material, color or finish" autocomplete="off"><kbd>/</kbd>
+      </div>
+      <form class="filters" id="filters" hidden>
+        <label>Color <select name="color"><option value="">All colors</option></select></label>
+        <label>Finish <select name="finish"><option value="">All finishes</option></select></label>
+        <label>Samples Size <select name="size"><option value="">All sample sizes</option></select></label>
+      </form>
+      <div id="grid" class="grid" aria-live="polite"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
+      <p style="margin-top:22px"><button type="button" class="link-btn" id="clear" hidden>Clear search and filters</button></p>
+    </section>
+
+    <aside class="palette side" aria-labelledby="palTitle" id="palette"></aside>
+  </div>
+</div></main>
+<div class="mobile-bar" id="mobileBar"></div>
+
+<script type="module">
+import { rpc, header, steps, cart, esc, titleCase, imageUrl, toast, sizeLabel, pcs, updateCount } from './assets/public.js?v=20261104d';
+header('catalog');
+document.getElementById('steps').innerHTML = steps(0);
+const grid = document.getElementById('grid'), form = document.getElementById('filters'), tabsEl = document.getElementById('tabs'), q = document.getElementById('q');
+const SECTION = { tile: 'Tiles', paver: 'Pavers', other: 'Other' };
+let items = [], section = null;
+const state = new Map();   // card key → { color, sku }
+
+// one card per model + finish; its colors and sample sizes come from the inventory
+function cards(list) {
   const map = new Map();
   for (const it of list) {
-    const k = `${it.model}|${it.color || ''}|${it.finish}`;
-    if (!map.has(k)) map.set(k, { key: k, name: it.product_name, color: it.color, finish: it.finish, category: it.category, image: it.image_path, options: [] });
-    const v = map.get(k); v.image = v.image || it.image_path; v.options.push(it);
+    const k = `${it.model}|${it.finish}`;
+    if (!map.has(k)) map.set(k, { key: k, name: it.product_name, finish: it.finish, category: it.category, colors: new Map() });
+    const c = map.get(k);
+    const ck = it.color || '';
+    if (!c.colors.has(ck)) c.colors.set(ck, { color: it.color, image: it.image_path, options: [] });
+    const col = c.colors.get(ck); col.image = col.image || it.image_path; col.options.push(it);
   }
   return [...map.values()];
 }
-function inSection(it) { return section === 'all' || it.category === section; }
+const avail = (o) => (o.available ?? o.max_selectable);   // "available" comes with step 5 (05_catalogo_diseno.sql)
+const pieces = (opts) => opts.reduce((n, o) => n + avail(o), 0);
+const matches = (it, f, text) => (!f.color || it.color === f.color) && (!f.finish || it.finish === f.finish) && (!f.size || it.sample_size === f.size)
+  && (!text || `${it.product_name} ${it.color || ''} ${it.finish} ${it.sample_size}`.toLowerCase().includes(text));
+
 function fillSelect(sel, values, current) {
   const first = sel.options[0].outerHTML;
-  // the value is set as a property (not the "selected" attribute) so "Clear filters" always returns to "All"
-  sel.innerHTML = first + values.map((v) => `<option>${esc(v)}</option>`).join('');
+  sel.innerHTML = first + values.map((v) => `<option value="${esc(v)}">${esc(sizeOrText(sel.name, v))}</option>`).join('');
   sel.value = current && values.includes(current) ? current : '';
 }
+function sizeOrText(name, v) {
+  if (name !== 'size') return v;
+  const it = items.find((i) => i.sample_size === v); const l = sizeLabel(it); return `${l.kind} ${l.size}`;
+}
+
 function render() {
+  const pool = items.filter((i) => i.category === section);
   const f = Object.fromEntries(new FormData(form));
-  const pool = items.filter(inSection);
   // filter options only from the materials of the current section (no irrelevant options for Pavers)
   fillSelect(form.color, [...new Set(pool.map((i) => i.color).filter(Boolean))].sort(), f.color);
   fillSelect(form.finish, [...new Set(pool.map((i) => i.finish))].sort(), f.finish);
   fillSelect(form.size, [...new Set(pool.map((i) => i.sample_size))].sort(), f.size);
-  const g = Object.fromEntries(new FormData(form));
-  const shown = variants(pool.filter((i) => (!g.color || i.color === g.color) && (!g.finish || i.finish === g.finish) && (!g.size || i.sample_size === g.size)));
-  document.getElementById('resultCount').textContent = `${shown.length} ${shown.length === 1 ? 'product' : 'products'}`;
-  if (!shown.length) { grid.innerHTML = `<div class="state" style="grid-column:1/-1">No samples match these filters.</div>`; return; }
-  grid.innerHTML = shown.map((v) => `<article class="card">
-    <div class="swatch">${v.image ? `<img loading="lazy" src="${esc(imageUrl(v.image))}" alt="${esc(titleCase(v.name))} ${esc(v.color || '')} ${esc(v.finish)} surface">`
-                                  : `<div class="pending"><span class="mono">${esc(v.name)}</span><small>Photo coming soon</small></div>`}</div>
-    <div class="body">
-      <h3>${esc(v.name)}</h3>
-      <div class="sub">${esc([v.color, v.finish].filter(Boolean).join(' · '))}</div>
-      <div class="opts">${v.options.filter((o) => !g.size || o.sample_size === g.size).map((o) => `
-        <div class="opt">
-          <div class="size">${esc(o.sample_size)}<small title="${esc(SAMPLE_HELP[o.sample_type])}">${SAMPLE_TYPE[o.sample_type]} · up to ${o.max_selectable}</small></div>
-          <input type="number" min="1" max="${o.max_selectable}" value="1" aria-label="Quantity of ${esc(o.sample_size)}" data-qty="${esc(o.sku_code)}">
-          <button class="btn small" type="button" data-add="${esc(o.sku_code)}">Add</button>
-        </div>`).join('')}</div>
-    </div></article>`).join('');
+  const g = Object.fromEntries(new FormData(form)); const text = q.value.trim().toLowerCase();
+  const shown = cards(pool.filter((i) => matches(i, g, text)));
+  document.getElementById('resultCount').textContent = `${shown.length} ${shown.length === 1 ? 'model' : 'models'}`;
+  document.getElementById('clear').hidden = !(text || g.color || g.finish || g.size);
+  if (!shown.length) { grid.innerHTML = `<div class="state">No samples match your search. <button class="link-btn" type="button" data-clear>Clear search and filters</button></div>`; return; }
+  const inCart = new Set(cart.read().map((x) => x.sku_code));
+  grid.innerHTML = shown.map((c) => {
+    const cols = [...c.colors.values()];
+    let st = state.get(c.key);
+    if (!st || !c.colors.has(st.color)) { st = { color: (g.color && c.colors.has(g.color) ? g.color : cols[0].color) || '' }; }
+    const col = c.colors.get(st.color || '') || cols[0];
+    if (!col.options.some((o) => o.sku_code === st.sku)) st.sku = col.options[0].sku_code;
+    state.set(c.key, st);
+    const opt = col.options.find((o) => o.sku_code === st.sku);
+    const img = col.image ? `<img loading="lazy" src="${esc(imageUrl(col.image))}" alt="${esc(titleCase(c.name))} ${esc(col.color || '')} ${esc(c.finish)} surface">`
+                          : `<div class="pending"><span class="mono">${esc(c.name)}</span><small>Photo coming soon</small></div>`;
+    const named = cols.some((x) => x.color);
+    return `<article class="card" data-card="${esc(c.key)}">
+      <div class="frame"><div class="swatch">${img}</div></div>
+      <div class="body">
+        <div class="title"><h3>${esc(c.name)}</h3><span class="finish">${esc(c.finish)}</span></div>
+        ${named ? `<div class="colors-label">Inventory colors <b>${esc(col.color || '—')}</b></div>
+        <div class="colors">${cols.map((x) => `<button type="button" class="color" data-color="${esc(x.color || '')}" aria-pressed="${x === col}">
+          <div class="sw">${x.image ? `<img src="${esc(imageUrl(x.image))}" alt="">` : ''}</div><span>${esc(x.color || 'Standard')}</span><small>${pcs(pieces(x.options))}</small></button>`).join('')}</div>` : ''}
+        <div class="sizes">${col.options.map((o) => { const l = sizeLabel(o); return `<button type="button" class="size" data-sku="${esc(o.sku_code)}" aria-pressed="${o === opt}" title="${o.sample_type === 'full_piece' ? 'One complete tile in its production format' : 'A piece cut from the tile to show color and texture'}">${l.kind} ${esc(l.size)}<b>${pcs(avail(o))}</b></button>`; }).join('')}</div>
+        <button type="button" class="choose ${inCart.has(opt.sku_code) ? 'added' : ''}" data-add="${esc(opt.sku_code)}">${inCart.has(opt.sku_code) ? '✓ In your palette · add one more' : '+ Choose sample'}</button>
+      </div></article>`;
+  }).join('');
 }
+
+function renderPalette() {
+  const list = cart.read(); const total = list.reduce((n, i) => n + i.quantity, 0);
+  const p = document.getElementById('palette');
+  p.innerHTML = `<div class="head"><div><span class="eyebrow">Your palette</span><h3 id="palTitle">Sample selection</h3></div><span class="bubble ${list.length ? 'on' : ''}">${list.length}</span></div>
+    ${list.length ? `<div class="pal-list">${list.map((it, i) => { const l = sizeLabel(it); return `<div class="pal-item">
+        <div class="thumb">${it.image_path ? `<img src="${esc(imageUrl(it.image_path))}" alt="">` : esc(String(it.name).slice(0, 2))}</div>
+        <div><b>${esc(it.name)}</b><small>${esc([it.color, it.finish].filter(Boolean).join(' · '))}</small><small>${l.kind} ${esc(l.size)}</small></div>
+        <div class="qty"><button type="button" data-dec="${i}" aria-label="Less">−</button><span>${it.quantity}</span><button type="button" data-inc="${i}" aria-label="More">+</button></div>
+        <button type="button" class="link-btn rm" data-rm="${i}">Remove</button></div>`; }).join('')}</div>`
+      : `<div class="empty"><div class="ico"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3 4 7v10l8 4 8-4V7l-8-4z"/><path d="m4 7 8 4 8-4M12 11v10"/></svg></div>
+        <b>A space for your inspiration.</b><p>Add a few materials to create<br>your personal sample palette.</p></div>`}
+    <div class="total"><span>Total pieces</span><b>${total}</b></div>
+    <a class="btn block ${list.length ? '' : 'disabled'}" href="request/" ${list.length ? '' : 'aria-disabled="true" tabindex="-1" style="pointer-events:none;opacity:.5"'}>Continue to contact <span aria-hidden="true">→</span></a>`;
+  document.getElementById('mobileBar').innerHTML = `<span>Your palette · <b>${list.length} ${list.length === 1 ? 'sample' : 'samples'}</b> · ${total} pcs</span>
+    <a class="btn ${list.length ? '' : 'disabled'}" href="request/" ${list.length ? '' : 'style="pointer-events:none;opacity:.5"'}>Continue →</a>`;
+}
+
 grid.addEventListener('click', (e) => {
-  const code = e.target.closest('[data-add]')?.dataset.add; if (!code) return;
-  const it = items.find((i) => i.sku_code === code);
-  const q = Math.max(1, Math.min(Number(grid.querySelector(`[data-qty="${CSS.escape(code)}"]`).value) || 1, it.max_selectable));
+  if (e.target.closest('[data-clear]')) return clearAll();
+  const card = e.target.closest('[data-card]'); if (!card) return;
+  const st = state.get(card.dataset.card);
+  const color = e.target.closest('[data-color]'); if (color) { st.color = color.dataset.color; st.sku = null; return render(); }
+  const size = e.target.closest('[data-sku]'); if (size) { st.sku = size.dataset.sku; return render(); }
+  const add = e.target.closest('[data-add]'); if (!add) return;
+  const it = items.find((i) => i.sku_code === add.dataset.add);
+  const before = cart.read().find((x) => x.sku_code === it.sku_code)?.quantity || 0;
   cart.add({ sku_code: it.sku_code, name: it.product_name, color: it.color, finish: it.finish, sample_type: it.sample_type,
-             sample_size: it.sample_size, max_selectable: it.max_selectable, image_path: it.image_path }, q);
-  toast(`${titleCase(it.product_name)} added to your request`);
+             sample_size: it.sample_size, max_selectable: it.max_selectable, image_path: it.image_path }, 1);
+  const after = cart.read().find((x) => x.sku_code === it.sku_code)?.quantity || 0;
+  toast(after > before ? `${titleCase(it.product_name)} added to your palette` : `Maximum ${it.max_selectable} per request for this sample`);
+  render(); renderPalette();
 });
+document.getElementById('palette').addEventListener('click', paletteClick);
+function paletteClick(e) {
+  const list = cart.read(); const t = e.target.closest('button'); if (!t) return;
+  const i = Number(t.dataset.inc ?? t.dataset.dec ?? t.dataset.rm);
+  if (Number.isNaN(i) || !list[i]) return;
+  if (t.dataset.rm !== undefined) list.splice(i, 1);
+  else list[i].quantity = Math.max(1, Math.min(list[i].quantity + (t.dataset.inc !== undefined ? 1 : -1), list[i].max_selectable));
+  cart.write(list); renderPalette(); render();
+}
+function clearAll() { q.value = ''; form.reset(); render(); }
+document.getElementById('clear').addEventListener('click', clearAll);
 form.addEventListener('change', render);
-form.addEventListener('reset', () => setTimeout(render));
+let qt; q.addEventListener('input', () => { clearTimeout(qt); qt = setTimeout(render, 120); });
+document.addEventListener('keydown', (e) => { if (e.key === '/' && document.activeElement !== q && !/input|select|textarea/i.test(document.activeElement.tagName)) { e.preventDefault(); q.focus(); } });
 tabsEl.addEventListener('click', (e) => {
   const b = e.target.closest('[data-section]'); if (!b) return;
   section = b.dataset.section; form.reset();
@@ -98,21 +186,17 @@ tabsEl.addEventListener('click', (e) => {
   render();
 });
 
+renderPalette();
 try {
   items = await rpc('catalog_items');
-  const cats = [...new Set(items.map((i) => i.category))];
-  if (cats.length > 1) {
-    tabsEl.innerHTML = ['all', ...cats].map((c) => `<button type="button" role="tab" data-section="${c}" aria-selected="${c === 'all'}">${SECTIONS[c] || c}</button>`).join('');
-    tabsEl.hidden = false;
-  }
+  const cats = ['tile', 'paver', 'other'].filter((c) => items.some((i) => i.category === c));
+  section = cats[0] || 'tile';
+  tabsEl.innerHTML = cats.map((c) => `<button type="button" role="tab" data-section="${c}" aria-selected="${c === section}">${SECTION[c]} <span class="n">${cards(items.filter((i) => i.category === c)).length}</span></button>`).join('');
   form.hidden = false;
-  document.getElementById('statProducts').textContent = variants(items).length;
-  document.getElementById('statOptions').textContent = items.length;
-  document.getElementById('stats').hidden = !items.length;
-  if (!items.length) grid.innerHTML = `<div class="state" style="grid-column:1/-1">No samples are available right now. Please check back soon.</div>`;
+  if (!items.length) grid.innerHTML = `<div class="state">No samples are available right now. Please check back soon.</div>`;
   else render();
 } catch (e) {
-  grid.innerHTML = `<div class="state" style="grid-column:1/-1">We could not load the catalog. Please refresh the page.<br><button class="btn ghost" style="margin-top:12px" onclick="location.reload()">Refresh</button></div>`;
+  grid.innerHTML = `<div class="state">We could not load the samples. Please refresh the page.<br><button class="btn ghost" style="margin-top:14px" onclick="location.reload()">Refresh</button></div>`;
 }
 </script>
 </body>

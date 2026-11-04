@@ -25,19 +25,23 @@ for (const [label, ctxOpts] of [['desktop', { viewport: { width: 1366, height: 9
   await check(`${label}: catalog loads from the database, English, filters`, async () => {
     await page.goto(BASE + '/');
     await page.waitForSelector('.card');
-    assert.equal(await page.locator('.card').count(), 10);
+    assert.equal(await page.locator('.card').count(), 4, 'Tiles: one card per model + finish');
     const labels = await page.locator('.filters label').allTextContents();
     assert.deepEqual(labels.map((l) => l.split('\n')[0].trim().replace(/All.*$/, '').trim()), ['Color', 'Finish', 'Samples Size']);
     assert.ok(!(await page.content()).includes('Houston Inventory'));
-    await page.getByRole('tab', { name: 'Pavers' }).click();
+    const caravita = page.locator('.card', { hasText: 'Caravita' });
+    assert.equal(await caravita.locator('.color').count(), 3, 'inventory colors as chips');
+    await page.getByRole('tab', { name: /Pavers/ }).click();
     assert.equal(await page.locator('.card').count(), 3);
     const finishes = await page.locator('select[name=finish] option').allTextContents();
     assert.deepEqual(finishes, ['All finishes', 'Grip'], 'Pavers only show their own finishes');
-    await page.getByRole('tab', { name: 'All' }).click();
+    await page.getByRole('tab', { name: /Tiles/ }).click();
     await page.selectOption('select[name=finish]', 'Velvet');
-    assert.equal(await page.locator('.card').count(), 2);
-    await page.locator('.filters button[type=reset]').click();
-    await page.waitForFunction(() => document.querySelectorAll('.card').length === 10);
+    assert.equal(await page.locator('.card').count(), 1);
+    await page.fill('#q', 'charlot');
+    await page.waitForFunction(() => document.querySelectorAll('.card').length === 0);
+    await page.locator('#clear').click();
+    await page.waitForFunction(() => document.querySelectorAll('.card').length === 4);
     if (label === 'mobile') {
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
       assert.equal(overflow, false, 'no horizontal scroll on phone');
@@ -47,12 +51,14 @@ for (const [label, ctxOpts] of [['desktop', { viewport: { width: 1366, height: 9
 
   await check(`${label}: add samples, pickup hides address, submit once (double click), get folio`, async () => {
     await page.locator('.card', { hasText: 'Kingston' }).first().locator('[data-add]').click();
-    const card = page.locator('.card', { hasText: 'Caravita' }).filter({ hasText: 'Gold' });
-    await card.locator('input[type=number]').fill('3');
+    const card = page.locator('.card', { hasText: 'Caravita' });
+    await card.locator('.color', { hasText: 'Gold' }).click();
     await card.locator('[data-add]').click();
-    await page.getByRole('link', { name: /Request/ }).click();
+    await page.goto(BASE + '/request/');
     await page.waitForSelector('.sel-line');
     assert.equal(await page.locator('.sel-line').count(), 2);
+    const gold = page.locator('.sel-line', { hasText: 'Gold' }).locator('input[type=number]');
+    await gold.fill('3'); await gold.dispatchEvent('change'); await page.waitForTimeout(100);
     await page.fill('#full_name', 'QA Playwright'); await page.fill('#email', `qa-${label}-${RUN}@example.com`); await page.fill('#phone', '713 555 0100');
     await page.locator('label', { hasText: 'Customer pickup' }).click();
     assert.equal(await page.locator('#address_line').isVisible(), false, 'no address for pickup');
@@ -72,7 +78,7 @@ for (const [label, ctxOpts] of [['desktop', { viewport: { width: 1366, height: 9
     assert.deepEqual(r, { delivery_method: 'pickup', address_line: null, status: 'reserved' });
     await page.screenshot({ path: `${SHOTS}/e2e-${label}-confirmation.png` });
     // tracking with the private link
-    await page.getByRole('link', { name: 'Track your request' }).click();
+    await page.getByRole('link', { name: 'Track this request' }).click();
     await page.waitForSelector('.timeline li');
     assert.match(await page.locator('#out').textContent(), new RegExp(folio));
     assert.ok(!(await page.locator('#out').textContent()).includes(`qa-${label}-${RUN}@example.com`), 'no personal data on tracking page');
@@ -86,13 +92,15 @@ for (const [label, ctxOpts] of [['desktop', { viewport: { width: 1366, height: 9
   await check(`${label}: availability changed → customer can correct before confirming`, async () => {
     await page.goto(BASE + '/');
     await page.waitForSelector('.card');
+    await page.getByRole('tab', { name: /Pavers/ }).click();
     const card = page.locator('.card', { hasText: 'Kiel' });
-    await card.locator('input[type=number]').fill('5');
     await card.locator('[data-add]').click();
+    await page.goto(BASE + '/request/');
+    const kiel = page.locator('.sel-line', { hasText: 'Kiel' }).locator('input[type=number]');
+    await kiel.fill('5'); await kiel.dispatchEvent('change'); await page.waitForTimeout(100);
     // someone else takes almost everything meanwhile
     const s = (await db.query(`select s.id, s.on_hand, s.reserved from stock s join sample_skus k on k.id=s.sku_id where k.code='HOUSTON2-063'`)).rows[0];
     await db.query(`update stock set reserved = on_hand - 2 where id = $1`, [s.id]);   // test-only shortcut
-    await page.goto(BASE + '/request/');
     await page.fill('#full_name', 'QA Change'); await page.fill('#email', `qa-change-${label}-${RUN}@example.com`); await page.fill('#phone', '713 555 0101');
     await page.fill('#address_line', '100 Main St'); await page.fill('#city', 'Houston'); await page.fill('#state', 'TX'); await page.fill('#zip_code', '77002');
     await page.waitForTimeout(3100);
