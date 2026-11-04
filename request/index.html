@@ -56,7 +56,7 @@
   </div>
 </main>
 <script type="module">
-import { cart, header, esc, titleCase, imageUrl, SAMPLE_TYPE, apiHeaders } from '../assets/public.js';
+import { cart, header, esc, titleCase, imageUrl, SAMPLE_TYPE, rpc } from '../assets/public.js';
 header('request');
 const CFG = window.SAMPLES_CONFIG;
 const form = document.getElementById('form'), sel = document.getElementById('selection'), msg = document.getElementById('formMsg');
@@ -126,31 +126,41 @@ form.addEventListener('submit', async (e) => {
   }
   busy = true; const btn = document.getElementById('submit'); btn.disabled = true; btn.textContent = 'Submitting…';
   try {
-    const r = await fetch(CFG.submitUrl, { method: 'POST', headers: apiHeaders({ 'idempotency-key': attemptKey() }), body: JSON.stringify(body) });
-    const out = await r.json().catch(() => ({}));
-    if (r.ok && out.folio) {
-      cart.clear(); newAttempt();
-      document.getElementById('main').innerHTML = `<div class="panel done">
-        <h1>Request received</h1><p>Your request number is</p><div class="folio">${esc(out.folio)}</div>
-        <p>We sent a confirmation to <b>${esc(data.email)}</b>. You can follow your request at any time with this private link:</p>
-        <p><a class="btn" href="${esc(out.track_url)}">Track your request</a></p>
-        <p style="color:var(--muted);font-size:13px">Keep this link private: it shows the status of your request.</p></div>`;
+    // The database validates, re-checks availability, creates the folio and reserves in one transaction.
+    let out;
+    try {
+      out = await rpc('submit_request_public', { p_payload: body, p_idempotency_key: attemptKey() });
+    } catch (err) {
+      if (!err.body) throw err;                       // network problem → handled below
+      const m = err.body.message || '';
+      let detail = null; try { detail = JSON.parse(err.body.details || 'null'); } catch { /* not JSON */ }
+      if (m === 'UNAVAILABLE' && Array.isArray(detail)) {
+        problems = {};
+        for (const p of detail) {
+          problems[p.sku_code] = p.problem === 'insufficient' ? (p.available > 0 ? `Only ${p.available} available now. Please lower the quantity.` : 'No longer available. Please remove it.')
+            : p.problem === 'quantity_limit' ? `Maximum ${p.max} per request.` : 'No longer available. Please remove it.';
+          const it = items.find((x) => x.sku_code === p.sku_code); if (it && p.available > 0) it.max_selectable = Math.min(it.max_selectable, p.available);
+        }
+        cart.write(items); newAttempt(); renderSelection();
+        msg.innerHTML = `<div class="note err">Availability changed for some samples. Please review your selection.</div>`;
+      } else if (m === 'VALIDATION' && detail) {
+        showFieldErrors(detail); msg.innerHTML = `<div class="note err">Please review the highlighted fields.</div>`;
+      } else if (m === 'RATE_LIMITED') {
+        msg.innerHTML = `<div class="note err">Too many requests. Please try again later.</div>`;
+      } else if (m.startsWith('VALIDATION')) {
+        msg.innerHTML = `<div class="note err">Please review the form and submit it again.</div>`;
+      } else {
+        msg.innerHTML = `<div class="note err">We could not submit your request. Please try again in a few minutes.</div>`;
+      }
       return;
     }
-    if (r.status === 409 && out.problems) {
-      problems = {};
-      for (const p of out.problems) {
-        problems[p.sku_code] = p.problem === 'insufficient' ? (p.available > 0 ? `Only ${p.available} available now. Please lower the quantity.` : 'No longer available. Please remove it.')
-          : p.problem === 'quantity_limit' ? `Maximum ${p.max} per request.` : 'No longer available. Please remove it.';
-        const it = items.find((x) => x.sku_code === p.sku_code); if (it && p.available > 0) it.max_selectable = Math.min(it.max_selectable, p.available);
-      }
-      cart.write(items); newAttempt(); renderSelection();
-      msg.innerHTML = `<div class="note err">${esc(out.message)}</div>`;
-    } else if (out.fields) {
-      showFieldErrors(out.fields); msg.innerHTML = `<div class="note err">${esc(out.message)}</div>`;
-    } else {
-      msg.innerHTML = `<div class="note err">${esc(out.message || 'We could not submit your request. Please try again.')}</div>`;
-    }
+    const trackUrl = new URL(`track/?f=${encodeURIComponent(out.folio)}&t=${encodeURIComponent(out.track_token)}`, new URL('../', location.href)).href;
+    cart.clear(); newAttempt();
+    document.getElementById('main').innerHTML = `<div class="panel done">
+      <h1>Request received</h1><p>Your request number is</p><div class="folio">${esc(out.folio)}</div>
+      <p>Please save this private link to follow your request at any time:</p>
+      <p><a class="btn" href="${esc(trackUrl)}">Track your request</a></p>
+      <p style="color:var(--muted);font-size:13px">Keep this link private: it shows the status of your request.</p></div>`;
   } catch {
     // network problem: the same key is kept, so trying again cannot create a second request
     msg.innerHTML = `<div class="note err">Connection problem. Your request may not have been sent. Please try again — you will not get a duplicate.</div>`;

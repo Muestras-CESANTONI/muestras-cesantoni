@@ -1,9 +1,8 @@
 // Processes the notifications outbox. Invoked every minute by pg_cron (supabase/deploy/cron.sql),
 // so emails go out even when nobody has the platform open.
 // Secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, WORKER_SECRET, RESEND_API_KEY, MAIL_FROM, MAIL_REPLY_TO,
-//          PUBLIC_SITE_URL, TRACKING_SECRET, MAIL_MODE ("test" | "production"), MAIL_TEST_RECIPIENTS (comma separated)
+//          PUBLIC_SITE_URL, MAIL_MODE ("test" | "production"), MAIL_TEST_RECIPIENTS (comma separated)
 import { render } from '../_shared/templates.ts';
-import { trackingToken } from '../_shared/request.ts';
 
 const env = (k: string) => Deno.env.get(k) || '';
 const rpc = (fn: string, args: unknown) => fetch(`${env('SUPABASE_URL')}/rest/v1/rpc/${fn}`, {
@@ -22,7 +21,9 @@ Deno.serve(async (req) => {
   for (const raw of items) {
     const n = raw.notifications_claim ?? raw;
     try {
-      const token = n.audience === 'customer' && n.request?.source === 'web' ? await trackingToken(env('TRACKING_SECRET'), n.request.idempotency_key) : undefined;
+      // the tracking token is computed by the database from its own secret (never stored)
+      const token = n.audience === 'customer' && n.request?.source === 'web'
+        ? await rpc('notification_track_token', { p_folio: n.request.folio }).then((r) => r.ok ? r.json() : undefined) : undefined;
       const mail = render(n, { siteUrl: env('PUBLIC_SITE_URL'), trackToken: token });
       // TEST mode: real recipients are never contacted; the message goes to the authorized test inbox(es)
       const to = testMode ? testList : [n.recipient];

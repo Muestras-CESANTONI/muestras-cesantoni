@@ -312,3 +312,26 @@ test('extra: validation, limits, legacy snapshot, folio format', async () => {
   assert.doesNotMatch(snap[0].snap_description, /Renamed/);
   assert.ok(await errOf(su(`update request_lines set snap_description = 'x' where request_id = $1`, [r.request_id])));
 });
+
+test('public submission from the website (anon role, no server function)', async () => {
+  await setStock(SKU_B, (await stockOf(SKU_B)).reserved + 20);
+  const body = (extra = {}) => ({ ...payload([{ sku_code: SKU_B, quantity: 2 }]), form_started_at: Date.now() - 10000, ...extra });
+  const call = (b, key = uuid()) => as('anon', (c) => one(c, 'select public.submit_request_public($1,$2) r', [b, key])).then((x) => x.r);
+  // bots and invalid data are rejected with field messages, nothing is stored
+  assert.match((await errOf(call(body({ website: 'spam' })))).message, /VALIDATION/);
+  assert.match((await errOf(call(body({ form_started_at: Date.now() })))).message, /VALIDATION/);
+  const bad = await errOf(call(body({ email: 'nope', city: '' })));
+  assert.deepEqual(Object.keys(JSON.parse(bad.detail)).sort(), ['city', 'email']);
+  // double click: same key → same folio and same private link
+  const key = uuid(); const b = body();
+  const [r1, r2] = await Promise.all([call(b, key), call(b, key)]);
+  assert.equal(r1.folio, r2.folio); assert.equal(r1.track_token, r2.track_token);
+  assert.equal((await su('select count(*)::int n from requests where idempotency_key = $1', [key]))[0].n, 1);
+  // the token opens tracking; the folio alone does not
+  const t = await as('anon', (c) => one(c, 'select public.track_request($1,$2) r', [r1.folio, r1.track_token]));
+  assert.equal(t.r.status, 'reserved');
+  // anon still cannot call the server-only function or the worker
+  assert.ok(await errOf(as('anon', (c) => c.query('select public.submit_request($1,$2,$3)', [b, uuid(), sha('x')]))));
+  assert.ok(await errOf(as('anon', (c) => c.query(`select public.notification_track_token($1)`, [r1.folio]))));
+  assert.equal((await as('service', (c) => one(c, 'select public.notification_track_token($1) t', [r1.folio]))).t, r1.track_token);
+});
